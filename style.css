@@ -415,6 +415,23 @@ body {
   #btnInstalarApp span { display: none; }
 }
 
+/* Llamar la atención hacia el botón de descarga */
+#btnInstalarApp {
+  animation: pulse-gold 2.4s ease-in-out infinite;
+}
+@keyframes pulse-gold {
+  0%, 100% { box-shadow: var(--shadow), 0 0 0 0 rgba(197,136,42,.55); }
+  50%      { box-shadow: var(--shadow), 0 0 0 6px rgba(197,136,42,0); }
+}
+
+/* Modal de instrucciones de instalación */
+#installInfoModal .modal-footer {
+  justify-content: center;
+}
+#installInfoModal .modal-body > p {
+  text-align: left;
+}
+
 /* ══ MODALES ════════════════════════════════ */
 
 .modal-overlay {
