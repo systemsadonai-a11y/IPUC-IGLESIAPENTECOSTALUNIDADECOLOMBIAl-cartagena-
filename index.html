@@ -72,13 +72,13 @@
 
   </div>
 
-  <!-- ═══════════════════ BOTÓN INSTALAR APP (PWA) ══════════════════ -->
-  <button id="btnInstalarApp" class="hidden" title="Instalar como app">
+  <!-- ═══════════════════ BOTÓN DESCARGAR/INSTALAR APP (PWA) ══════════════════ -->
+  <button id="btnInstalarApp" class="hidden" title="Descargar app">
     <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
       <path d="M8 1v9M4.5 7L8 10.5 11.5 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       <path d="M2.5 12.5v1a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
     </svg>
-    <span>Instalar app</span>
+    <span>Descargar app</span>
   </button>
 
   <!-- ═══════════════════ BOTÓN ADMIN FLOTANTE ══════════════════ -->
@@ -232,6 +232,25 @@
       <div class="modal-footer">
         <button id="btnConfirmDelete" class="btn-danger">Sí, eliminar</button>
         <button id="btnCancelDelete" class="btn-ghost">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════ MODAL INSTRUCCIONES DESCARGA APP ═══════════ -->
+  <div id="installInfoModal" class="modal-overlay hidden">
+    <div class="modal-card modal-sm">
+      <div class="modal-header">
+        <h2>Descargar la app</h2>
+        <button id="btnCerrarInstallInfo" class="btn-close">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 2l12 12M14 2L2 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="confirm-icon">📲</div>
+        <p id="installInfoText">Para instalar esta app en tu dispositivo, usa la opción "Agregar a pantalla de inicio" o "Instalar app" del menú de tu navegador.</p>
+      </div>
+      <div class="modal-footer">
+        <button id="btnCerrarInstallInfo2" class="btn-primary">Entendido</button>
       </div>
     </div>
   </div>
