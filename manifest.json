@@ -1,4 +1,5 @@
 {
+  "id": "./",
   "name": "Cultos de Barrios - IPUC Vista Hermosa",
   "short_name": "Cultos IPUC",
   "description": "Mapa de puntos de culto de barrio, REFAN y sede principal de IPUC Vista Hermosa, Cartagena.",
@@ -9,6 +10,8 @@
   "background_color": "#0c1d38",
   "theme_color": "#0c1d38",
   "lang": "es",
+  "categories": ["lifestyle", "navigation", "social"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "icon-193.png",
