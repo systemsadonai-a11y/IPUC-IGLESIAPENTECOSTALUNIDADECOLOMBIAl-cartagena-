@@ -39,6 +39,11 @@ let eliminandoId   = null;
 let modoAdmin      = false;
 let modoPickCoord  = false;   // ← true cuando el form está abierto y esperamos clic en mapa
 let pinTemporal    = null;    // marcador provisional al hacer clic
+let userPos        = null;    // { lat, lng } del usuario, si dio permiso
+let userMarker     = null;
+
+// Límites aproximados de Cartagena (para validar coordenadas)
+const CARTAGENA_BOUNDS = { latMin: 10.20, latMax: 10.60, lngMin: -75.70, lngMax: -75.30 };
 
 // ════════════════════════════════════════════════
 //  ELEMENTOS DOM
@@ -238,6 +243,52 @@ function initMap() {
   });
 }
 
+// ── Distancia entre dos coordenadas (Haversine, en km) ──
+function calcularDistanciaKm(lat1, lng1, lat2, lng2) {
+  const R = 6371; // radio de la Tierra en km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) ** 2 +
+            Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) *
+            Math.sin(dLng/2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function formatearDistancia(km) {
+  if (km < 1) return `${Math.round(km * 1000)} m`;
+  return `${km.toFixed(1)} km`;
+}
+
+// ── Icono del marcador "Tú estás aquí" ──
+function makeIconUserPos() {
+  return L.divIcon({
+    className: "",
+    html: `<div class="user-pos-dot"></div>`,
+    iconSize:   [18, 18],
+    iconAnchor: [9, 9],
+    popupAnchor:[0, -12]
+  });
+}
+
+// ── Solicitar ubicación del usuario ──
+function solicitarUbicacionUsuario() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      userPos = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      if (userMarker) userMarker.remove();
+      userMarker = L.marker([userPos.lat, userPos.lng], { icon: makeIconUserPos(), zIndexOffset: 1000 })
+        .addTo(map)
+        .bindPopup("📍 Tu ubicación actual");
+      // Recalcular popups y orden con la nueva distancia
+      refrescarMarcadores();
+    },
+    () => { /* permiso denegado o error: seguimos sin distancia */ },
+    { enableHighAccuracy: true, timeout: 8000 }
+  );
+}
+
 function lightenColor(hex, amount) {
   try {
     const c = hex.replace("#","");
@@ -326,8 +377,41 @@ function buildPopup(id, c) {
     ? `<div class="popup-row"><strong>Observaciones:</strong><span>${c.observaciones}</span></div>`
     : "";
 
-  const dir   = encodeURIComponent(`${c.direccion}, Cartagena, Colombia`);
-  const gmaps = `https://www.google.com/maps/dir/?api=1&destination=${dir}`;
+  const lat = parseFloat(c.latitud);
+  const lng = parseFloat(c.longitud);
+
+  let gmaps;
+  if (!isNaN(lat) && !isNaN(lng)) {
+    // destination con coordenadas exactas + dir_action=navigate para
+    // que en móvil abra navegación directa hacia ese punto
+    gmaps = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}&travelmode=driving&dir_action=navigate`;
+  } else {
+    // Fallback solo si algún registro viejo no tiene coordenadas guardadas
+    const dir = encodeURIComponent(`${c.direccion}, Cartagena, Colombia`);
+    gmaps = `https://www.google.com/maps/dir/?api=1&destination=${dir}`;
+  }
+
+  // ── Distancia desde la ubicación del usuario (si está disponible) ──
+  let chipDistancia = "";
+  if (userPos && !isNaN(lat) && !isNaN(lng)) {
+    const km = calcularDistanciaKm(userPos.lat, userPos.lng, lat, lng);
+    chipDistancia = `<span class="chip chip-distancia">📏 ${formatearDistancia(km)} de ti</span>`;
+  }
+
+  // ── Botón compartir por WhatsApp (mensaje tipo invitación) ──
+  const tipoTexto = c.tipo === "iglesia" ? "nuestra Iglesia Principal" : (c.tipo === "refan" ? "el punto REFAN" : "el Culto de Barrio");
+  const lineaObs = c.observaciones ? `\n📝 ${c.observaciones}\n` : "";
+  const mensajeWA =
+    `🙌 ¡Te invitamos con mucho cariño!\n\n` +
+    `Únete a ${tipoTexto} *${c.barrio}* 📚\n\n` +
+    `📅 *${c.dia}* a las *${c.hora}*\n` +
+    `📍 ${c.direccion}\n` +
+    `🙋 Te esperan: ${c.responsables}\n` +
+    lineaObs +
+    `\n👉 Cómo llegar: ${gmaps}\n\n` +
+    `¡Será una bendición contar contigo! 🙏`;
+  const waLink = `https://wa.me/?text=${encodeURIComponent(mensajeWA)}`;
+  const botonWhatsapp = `<a class="btn-map-whatsapp" href="${waLink}" target="_blank" rel="noopener">💬 Invitar por WhatsApp</a>`;
 
   const botonesAdmin = modoAdmin ? `
     <button class="btn-map-edit"   onclick="window._editarCulto('${id}')">✏ Editar</button>
@@ -348,10 +432,12 @@ function buildPopup(id, c) {
         <span class="chip">👥 ${c.hermanos || 0} hermanos</span>
         <span class="chip">🙋 ${c.visitas || 0} visitas</span>
         <span class="chip chip-gold">📅 ${c.dia} ${c.hora}</span>
+        ${chipDistancia}
       </div>
       ${obs}
       <div class="popup-actions">
         <a class="btn-map-dir" href="${gmaps}" target="_blank" rel="noopener">📍 Cómo llegar</a>
+        ${botonWhatsapp}
         ${botonesAdmin}
       </div>
     </div>
@@ -504,6 +590,23 @@ document.getElementById("btnGuardar").addEventListener("click", async () => {
     formError.textContent = "Ingresa coordenadas válidas o elige en el mapa."; return;
   }
 
+  // ── Validación: ¿las coordenadas están dentro de Cartagena? ──
+  // Detecta errores comunes: latitud/longitud invertidas, valores
+  // copiados de otra ciudad, o digitados sin el signo "-" en la longitud.
+  const fueraDeRango =
+    latitud  < CARTAGENA_BOUNDS.latMin || latitud  > CARTAGENA_BOUNDS.latMax ||
+    longitud < CARTAGENA_BOUNDS.lngMin || longitud > CARTAGENA_BOUNDS.lngMax;
+
+  if (fueraDeRango) {
+    const continuar = confirm(
+      "⚠️ Estas coordenadas parecen estar fuera de Cartagena.\n\n" +
+      `Latitud: ${latitud}\nLongitud: ${longitud}\n\n` +
+      "Verifica que no estén invertidas (lat/lng) o que la longitud tenga el signo \"-\".\n\n" +
+      "¿Deseas guardar de todas formas?"
+    );
+    if (!continuar) return;
+  }
+
   const culto = {
     barrio, direccion, responsables,
     foto:          document.getElementById("fotoUrl").value.trim(),
@@ -559,10 +662,38 @@ window._editarCulto       = (id) => { map.closePopup(); abrirModalEditar(id); };
 window._confirmarEliminar = (id) => { map.closePopup(); confirmarEliminar(id); };
 
 // ════════════════════════════════════════════════
+//  PWA – BOTÓN "INSTALAR APP"
+// ════════════════════════════════════════════════
+let deferredInstallPrompt = null;
+const btnInstalarApp = document.getElementById("btnInstalarApp");
+
+window.addEventListener("beforeinstallprompt", (e) => {
+  // Evita que Chrome muestre su mini-infobar automática
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  btnInstalarApp.classList.remove("hidden");
+});
+
+btnInstalarApp.addEventListener("click", async () => {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt = null;
+  btnInstalarApp.classList.add("hidden");
+});
+
+// Si ya está instalada (o el usuario la cierra), ocultar el botón
+window.addEventListener("appinstalled", () => {
+  btnInstalarApp.classList.add("hidden");
+  deferredInstallPrompt = null;
+});
+
+// ════════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════════
 initMap();
 listenCultos();
+solicitarUbicacionUsuario();
 
 if (localStorage.getItem("ipuc_admin") === "ok") {
   activarAdmin();

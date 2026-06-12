@@ -2,8 +2,20 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>Cultos de Barrios  IPUC Vista Hermosa</title>
+
+  <!-- ═══ PWA: manifest, ícono y theme color ═══ -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0c1d38" />
+  <link rel="icon" href="icon-193.png" type="image/png" />
+  <link rel="apple-touch-icon" href="icon-193.png" />
+
+  <!-- Soporte para "Agregar a inicio" en iOS Safari -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Cultos IPUC" />
+
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Cormorant+Garamond:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
@@ -40,7 +52,6 @@
     <div id="map-wrap">
       <div id="map"></div>
 
-
     <!-- STATS BAR -->
     <div class="stats-bar">
       <div class="stat">
@@ -60,6 +71,15 @@
     </div>
 
   </div>
+
+  <!-- ═══════════════════ BOTÓN INSTALAR APP (PWA) ══════════════════ -->
+  <button id="btnInstalarApp" class="hidden" title="Instalar como app">
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none">
+      <path d="M8 1v9M4.5 7L8 10.5 11.5 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M2.5 12.5v1a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+    </svg>
+    <span>Instalar app</span>
+  </button>
 
   <!-- ═══════════════════ BOTÓN ADMIN FLOTANTE ══════════════════ -->
   <button id="btnAdminFloat" title="Acceso Administrador">
@@ -218,5 +238,15 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script type="module" src="app.js"></script>
+
+  <!-- ═══ PWA: registrar service worker ═══ -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js")
+          .catch(err => console.warn("No se pudo registrar el service worker:", err));
+      });
+    }
+  </script>
 </body>
 </html>
