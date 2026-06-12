@@ -662,27 +662,90 @@ window._editarCulto       = (id) => { map.closePopup(); abrirModalEditar(id); };
 window._confirmarEliminar = (id) => { map.closePopup(); confirmarEliminar(id); };
 
 // ════════════════════════════════════════════════
-//  PWA – BOTÓN "INSTALAR APP"
+//  PWA – BOTÓN "DESCARGAR / INSTALAR APP"
 // ════════════════════════════════════════════════
 let deferredInstallPrompt = null;
-const btnInstalarApp = document.getElementById("btnInstalarApp");
+const btnInstalarApp     = document.getElementById("btnInstalarApp");
+const installInfoModal   = document.getElementById("installInfoModal");
+const installInfoText    = document.getElementById("installInfoText");
+const btnCerrarInstallInfo  = document.getElementById("btnCerrarInstallInfo");
+const btnCerrarInstallInfo2 = document.getElementById("btnCerrarInstallInfo2");
 
+// ── ¿La app ya está instalada / corriendo en modo standalone? ──
+function appEstaInstalada() {
+  return window.matchMedia("(display-mode: standalone)").matches ||
+         window.navigator.standalone === true; // iOS Safari
+}
+
+// ── Detección simple de plataforma para dar instrucciones correctas ──
+function getInstruccionesInstalacion() {
+  const ua = navigator.userAgent || "";
+  const esIOS     = /iphone|ipad|ipod/i.test(ua);
+  const esAndroid = /android/i.test(ua);
+  const esSafari  = /safari/i.test(ua) && !/crios|fxios|chrome|android/i.test(ua);
+
+  if (esIOS) {
+    return `Para instalar la app en iPhone/iPad:<br><br>
+      1. Toca el botón <strong>Compartir</strong> (el cuadrado con flecha ↑) en la barra de Safari.<br>
+      2. Selecciona <strong>"Agregar a pantalla de inicio"</strong>.<br>
+      3. Toca <strong>"Agregar"</strong>.<br><br>
+      ¡Listo! El ícono de la app aparecerá en tu pantalla de inicio.`;
+  }
+  if (esAndroid) {
+    return `Para instalar la app en Android:<br><br>
+      1. Toca el menú <strong>⋮</strong> (tres puntos) de tu navegador.<br>
+      2. Selecciona <strong>"Instalar app"</strong> o <strong>"Agregar a pantalla de inicio"</strong>.<br>
+      3. Confirma la instalación.<br><br>
+      ¡Listo! El ícono de la app aparecerá en tu pantalla de inicio.`;
+  }
+  return `Para instalar la app en tu computador:<br><br>
+    1. Busca el ícono de <strong>instalación</strong> ⬇️ en la barra de direcciones de tu navegador (Chrome o Edge).<br>
+    2. Haz clic en <strong>"Instalar"</strong>.<br><br>
+    Si no ves esa opción, abre el menú del navegador y busca <strong>"Instalar Cultos de Barrios IPUC..."</strong> o <strong>"Agregar a pantalla de inicio"</strong>.`;
+}
+
+function mostrarInstruccionesInstalacion() {
+  installInfoText.innerHTML = getInstruccionesInstalacion();
+  installInfoModal.classList.remove("hidden");
+}
+
+function cerrarInstruccionesInstalacion() {
+  installInfoModal.classList.add("hidden");
+}
+
+btnCerrarInstallInfo.addEventListener("click", cerrarInstruccionesInstalacion);
+btnCerrarInstallInfo2.addEventListener("click", cerrarInstruccionesInstalacion);
+installInfoModal.addEventListener("click", (e) => {
+  if (e.target === installInfoModal) cerrarInstruccionesInstalacion();
+});
+
+// ── Mostrar el botón si la app aún no está instalada ──
+if (!appEstaInstalada()) {
+  btnInstalarApp.classList.remove("hidden");
+}
+
+// ── Chrome/Edge/Android: capturamos el evento nativo de instalación ──
 window.addEventListener("beforeinstallprompt", (e) => {
-  // Evita que Chrome muestre su mini-infobar automática
   e.preventDefault();
   deferredInstallPrompt = e;
-  btnInstalarApp.classList.remove("hidden");
+  if (!appEstaInstalada()) btnInstalarApp.classList.remove("hidden");
 });
 
+// ── Clic en "Descargar app" ──
 btnInstalarApp.addEventListener("click", async () => {
-  if (!deferredInstallPrompt) return;
-  deferredInstallPrompt.prompt();
-  await deferredInstallPrompt.userChoice;
-  deferredInstallPrompt = null;
-  btnInstalarApp.classList.add("hidden");
+  if (deferredInstallPrompt) {
+    // El navegador soporta instalación nativa (Chrome, Edge, Android…)
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    btnInstalarApp.classList.add("hidden");
+  } else {
+    // Safari / iOS / navegadores sin soporte nativo: mostrar instrucciones
+    mostrarInstruccionesInstalacion();
+  }
 });
 
-// Si ya está instalada (o el usuario la cierra), ocultar el botón
+// ── Si ya está instalada, ocultar el botón ──
 window.addEventListener("appinstalled", () => {
   btnInstalarApp.classList.add("hidden");
   deferredInstallPrompt = null;
