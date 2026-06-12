@@ -5,7 +5,7 @@
 //  el último estado) sin conexión.
 // ══════════════════════════════════════════════════
 
-const CACHE_NAME = "ipuc-cultos-v2";
+const CACHE_NAME = "ipuc-cultos-v3";
 
 // Archivos propios de la app que sí cacheamos
 const APP_SHELL = [
